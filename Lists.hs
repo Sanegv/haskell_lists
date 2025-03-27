@@ -10,6 +10,9 @@ map' f = foldr' (\x acc -> f x : acc) []
 filter' :: (a -> Bool) -> [a] -> [a]
 filter' p = foldr' (\x acc -> if p x then x:acc else acc) []
 
+reverse' :: [a] -> [a]  
+reverse' = foldl (\acc x -> x : acc) []
+
 init' :: [a] -> [a]
 init' [] = error "empty list"
 init' [x] = []
@@ -174,3 +177,17 @@ lines' :: String -> [String]
 lines' [] = []
 lines' l@(h:t) = fst (split l) : lines' (drop' 1 (snd $ split l))
     where split = break' (=='\n')
+
+unlines' :: [String] -> String
+unlines' = intercalate' "\n" 
+
+words' :: String -> [String]
+words' [] = []
+words' l@(h:t) = fst (split trimmed) : words' (drop' 1 (snd $ split trimmed))
+        where 
+            p = (\x -> (x =='\n') || (x ==' ')) --todo: better predicate (how do I use chars?)
+            split = break' p
+            trimmed = reverse' $ dropWhile' p $ reverse' $ dropWhile' p l
+
+unwords' :: [String] -> String
+unwords' = intercalate' " "

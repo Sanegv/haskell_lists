@@ -83,10 +83,13 @@ sort' (h:t) =
         biggerSorted = sort' $ filter' (> h) t
     in smallerSorted ++  [h] ++ biggerSorted
 
-group' :: Eq a => [a] -> [[a]] --thanks hackage
-group' [] = []
-group' (h:t) = (h:t1) : group' t2
-    where (t1,t2) = span' (== h) t
+groupBy' :: (a -> a -> Bool) -> [a] -> [[a]]
+groupBy' _ [] = []
+groupBy' f (h:t) = (h:t1) : groupBy' f t2
+    where (t1,t2) = span' (f h) t
+
+group' :: Eq a => [a] -> [[a]]
+group' = groupBy' (==)
 
 inits' :: [a] -> [[a]]
 inits' [] = [[]]
@@ -192,24 +195,43 @@ words' l@(h:t) = fst (split trimmed) : words' (drop' 1 (snd $ split trimmed))
 unwords' :: [String] -> String
 unwords' = intercalate' " "
 
-nub' :: Eq a => [a] -> [a]
-nub' [] = []
-nub' (h:t) = h:(nub' $ remove h t)
+nubBy' :: (a -> a -> Bool) -> [a] -> [a]
+nubBy' _ [] = []
+nubBy' f (h:t) = h:(nubBy' f $ remove f h t)
     where 
-        remove _ [] = []
-        remove e (h:t) = if e==h then remove e t else h:(remove e t)
+        remove _ _ [] = []
+        remove f e (h:t) = if e `f` h then remove f e t else h:(remove f e t)
+
+nub' :: Eq a => [a] -> [a]
+nub' = nubBy' (==)
+
+deleteBy' :: (a -> a -> Bool) -> a -> [a] -> [a]
+deleteBy' _ _ [] = []
+deleteBy' f e (h:t) = if e `f` h then t else h:(deleteBy' f e t)
 
 delete' :: Eq a => a -> [a] -> [a]
-delete' _ [] = []
-delete' e (h:t) = if e==h then t else h:(delete' e t)
+delete' = deleteBy' (==)
 
 (\\) :: Eq a => [a] -> [a] -> [a]
 (\\) [] _ = []
 (\\) _ [] = []
 (\\) (h:t) sub = if h `elem'` sub then  t \\ (delete' h sub) else h:(t \\ sub)
 
+unionBy' :: (a -> a -> Bool) -> [a] -> [a] -> [a]
+unionBy' f l l2 = l ++ foldr' (\x acc -> if any' (f x) l then acc else x:acc) [] (nubBy' f l2)
+
 union' :: Eq a => [a] -> [a] -> [a]
-union' l l2 = l ++ foldr' (\x acc -> if x `elem'` l then acc else x:acc) [] l2
+union' = unionBy' (==)
+
+intersectBy' :: (a -> a -> Bool) -> [a] -> [a] -> [a]
+intersectBy' f l1 l2 = foldr' (\x acc -> if any' (f x) l1 then x:acc else acc) [] (nubBy' f l2)
 
 intersect' :: Eq a => [a] -> [a] -> [a]
-intersect' l1 l2 = foldr' (\x acc -> if x `elem'` (nub' l2) then x:acc else acc) [] (nub' l1)
+intersect' = intersectBy' (==)
+
+insert' :: Ord a  => a -> [a] -> [a]
+insert' e l = fst tuple ++ [e] ++ snd tuple
+    where tuple = break' (>=e) l
+
+length' :: [a] -> Int
+length' = foldr' (\_ acc -> succ acc) 0

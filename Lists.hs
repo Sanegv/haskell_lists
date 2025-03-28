@@ -191,3 +191,25 @@ words' l@(h:t) = fst (split trimmed) : words' (drop' 1 (snd $ split trimmed))
 
 unwords' :: [String] -> String
 unwords' = intercalate' " "
+
+nub' :: Eq a => [a] -> [a]
+nub' [] = []
+nub' (h:t) = h:(nub' $ remove h t)
+    where 
+        remove _ [] = []
+        remove e (h:t) = if e==h then remove e t else h:(remove e t)
+
+delete' :: Eq a => a -> [a] -> [a]
+delete' _ [] = []
+delete' e (h:t) = if e==h then t else h:(delete' e t)
+
+(\\) :: Eq a => [a] -> [a] -> [a]
+(\\) [] _ = []
+(\\) _ [] = []
+(\\) (h:t) sub = if h `elem'` sub then  t \\ (delete' h sub) else h:(t \\ sub)
+
+union' :: Eq a => [a] -> [a] -> [a]
+union' l l2 = l ++ foldr' (\x acc -> if x `elem'` l then acc else x:acc) [] l2
+
+intersect' :: Eq a => [a] -> [a] -> [a]
+intersect' l1 l2 = foldr' (\x acc -> if x `elem'` (nub' l2) then x:acc else acc) [] (nub' l1)

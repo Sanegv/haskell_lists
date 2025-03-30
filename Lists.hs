@@ -1,3 +1,4 @@
+import Data.Foldable (minimumBy)
 sum' :: Num a => [a] -> a
 sum' = foldr' (+) 0
 
@@ -10,7 +11,7 @@ map' f = foldr' (\x acc -> f x : acc) []
 filter' :: (a -> Bool) -> [a] -> [a]
 filter' p = foldr' (\x acc -> if p x then x:acc else acc) []
 
-reverse' :: [a] -> [a]  
+reverse' :: [a] -> [a]
 reverse' = foldl (\acc x -> x : acc) []
 
 init' :: [a] -> [a]
@@ -76,12 +77,16 @@ span' p l = (takeWhile' p l, dropWhile' p l)
 break' :: (a -> Bool) -> [a] -> ([a], [a])
 break' p = span' (not . p)
 
+sortBy' :: (a -> a -> Ordering) -> [a] -> [a]
+sortBy' _ [] = []
+sortBy' f (h:t) =
+    let
+        smallerSorted = sortBy' f $ filter' (\x -> x `f` h == EQ || x `f` h == LT) t
+        biggerSorted = sortBy' f $ filter' (\x -> x `f` h == GT) t
+    in smallerSorted ++ [h] ++ biggerSorted
+
 sort' :: Ord a => [a] -> [a]
-sort' [] = []
-sort' (h:t) = 
-    let smallerSorted = sort' $ filter' (<= h) t
-        biggerSorted = sort' $ filter' (> h) t
-    in smallerSorted ++  [h] ++ biggerSorted
+sort' = sortBy' compare
 
 groupBy' :: (a -> a -> Bool) -> [a] -> [[a]]
 groupBy' _ [] = []
@@ -123,7 +128,7 @@ foldl' _ acc [] = acc
 foldl' f acc (h:t) = f (foldl' f acc t) h
 
 isInfixOf' :: Eq a => [a] -> [a] -> Bool
-isInfixOf' sub list = 
+isInfixOf' sub list =
     let len = length sub in foldl' (\acc x -> (take len x == sub) || acc) False (tails' list)
 
 isPrefixOf' :: Eq a => [a] -> [a] -> Bool
@@ -133,7 +138,7 @@ isSuffixOf' :: Eq a => [a] -> [a] -> Bool
 isSuffixOf' sub l = foldr' (\x acc -> (x == sub) || acc) False (tails' l)
 
 elem' :: Eq a => a -> [a] -> Bool
-elem' e = foldr' (\x acc -> (x==e) || acc) False 
+elem' e = foldr' (\x acc -> (x==e) || acc) False
 
 notElem' :: Eq a => a -> [a] -> Bool
 notElem' e = not' . elem' e
@@ -141,8 +146,8 @@ notElem' e = not' . elem' e
 partition' :: (a -> Bool) -> [a] -> ([a],[a])
 partition' _ [] = ([], [])
 partition' p (h:t) = if p h then ((h:fst next), (snd next)) else ((fst next), (h:snd next))
-    where next = partition' p t 
-        
+    where next = partition' p t
+
 
 find' :: (a -> Bool) -> [a] -> Maybe a
 find' p = foldr' (\x acc -> if p x then Just x else acc) Nothing
@@ -154,14 +159,14 @@ elemIndices' :: (Eq a) => a -> [a] -> [Int]
 elemIndices' e l = findIndices' (==e) l
 
 findIndex' :: (Eq a) => (a -> Bool) -> [a] -> Maybe Int
-findIndex' p l = index p 0 l 
-    where 
+findIndex' p l = index p 0 l
+    where
         index _ _ [] = Nothing
-        index p i (h:t) = if p h then Just i else index p (succ i) t 
+        index p i (h:t) = if p h then Just i else index p (succ i) t
 
 findIndices' :: (Eq a) => (a -> Bool) -> [a] -> [Int]
 findIndices' p l = indices p 0 l
-    where 
+    where
         indices _ _ [] = []
         indices p i (h:t) = if p h then (i:next) else next
             where next = indices p (succ i) t
@@ -182,12 +187,12 @@ lines' l@(h:t) = fst (split l) : lines' (drop' 1 (snd $ split l))
     where split = break' (=='\n')
 
 unlines' :: [String] -> String
-unlines' = intercalate' "\n" 
+unlines' = intercalate' "\n"
 
 words' :: String -> [String]
 words' [] = []
 words' l@(h:t) = fst (split trimmed) : words' (drop' 1 (snd $ split trimmed))
-        where 
+        where
             p = (\x -> (x =='\n') || (x ==' ')) --todo: better predicate (how do I use chars?)
             split = break' p
             trimmed = reverse' $ dropWhile' p $ reverse' $ dropWhile' p l
@@ -198,7 +203,7 @@ unwords' = intercalate' " "
 nubBy' :: (a -> a -> Bool) -> [a] -> [a]
 nubBy' _ [] = []
 nubBy' f (h:t) = h:(nubBy' f $ remove f h t)
-    where 
+    where
         remove _ _ [] = []
         remove f e (h:t) = if e `f` h then remove f e t else h:(remove f e t)
 
@@ -229,9 +234,25 @@ intersectBy' f l1 l2 = foldr' (\x acc -> if any' (f x) l1 then x:acc else acc) [
 intersect' :: Eq a => [a] -> [a] -> [a]
 intersect' = intersectBy' (==)
 
+insertBy' :: (a -> a -> Ordering) -> a -> [a] -> [a]
+insertBy' f e l = fst tuple ++ [e] ++ snd tuple
+    where tuple = break' (\x -> e `f` x == LT) l
+
 insert' :: Ord a  => a -> [a] -> [a]
-insert' e l = fst tuple ++ [e] ++ snd tuple
-    where tuple = break' (>=e) l
+insert' = insertBy' compare
 
 length' :: [a] -> Int
 length' = foldr' (\_ acc -> succ acc) 0
+
+maximumBy' :: (a -> a -> Ordering) -> [a] -> a
+maximumBy' _ []  = error "empty list"
+maximumBy' f (h:t) = foldr' (\x acc -> if x `f` acc == GT then x else acc) h t
+
+minimumBy' :: (a -> a -> Ordering) -> [a] -> a
+minimumBy' f = maximumBy' (\x y -> if x `f` y == GT then LT else GT)
+
+maximum' :: Ord a => [a] -> a
+maximum' = maximumBy' compare
+
+minimum' :: Ord a => [a] -> a
+minimum' = minimumBy' compare

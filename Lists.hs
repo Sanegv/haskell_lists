@@ -1,4 +1,5 @@
-import Data.Foldable (minimumBy)
+import Data.Char (isSpace)
+
 sum' :: Num a => [a] -> a
 sum' = foldr' (+) 0
 
@@ -193,9 +194,8 @@ words' :: String -> [String]
 words' [] = []
 words' l@(h:t) = fst (split trimmed) : words' (drop' 1 (snd $ split trimmed))
         where
-            p = (\x -> (x =='\n') || (x ==' ')) --todo: better predicate (how do I use chars?)
-            split = break' p
-            trimmed = reverse' $ dropWhile' p $ reverse' $ dropWhile' p l
+            split = break' isSpace
+            trimmed = reverse' $ dropWhile' isSpace $ reverse' $ dropWhile' isSpace l
 
 unwords' :: [String] -> String
 unwords' = intercalate' " "
